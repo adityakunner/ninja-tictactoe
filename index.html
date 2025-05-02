@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ninja Tic Tac Toe</title>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="sound-control">
+    <button onclick="toggleSound()" id="soundButton">🔊</button>
+  </div>
+
+  <h1>忍者 Tic Tac Toe</h1>
+  <div class="player-symbol">You are: <span class="x-symbol">X</span> | AI is: <span class="o-symbol">O</span></div>
+  <div class="board" id="board"></div>
+  <div class="winner" id="winner"></div>
+  <div class="difficulty">
+    <button onclick="setDifficulty('easy')" id="easyBtn">Easy</button>
+    <button onclick="setDifficulty('medium')" id="mediumBtn">Medium</button>
+    <button onclick="setDifficulty('hard')" id="hardBtn" class="active">Hard</button>
+  </div>
+  <button onclick="initializeGame()">New Game</button>
+
+  <!-- Using direct links to free sounds -->
+  <audio id="moveSound" src="https://cdn.freesound.org/previews/242/242501_1908860-lq.mp3"></audio>
+  <audio id="aiMoveSound" src="https://cdn.freesound.org/previews/242/242503_1908860-lq.mp3"></audio>
+  <audio id="winSound" src="https://cdn.freesound.org/previews/270/270402_5123851-lq.mp3"></audio>
+  <audio id="drawSound" src="https://cdn.freesound.org/previews/242/242502_1908860-lq.mp3"></audio>
+  <audio id="buttonSound" src="https://cdn.freesound.org/previews/242/242504_1908860-lq.mp3"></audio>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
