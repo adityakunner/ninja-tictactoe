@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ninja Tic Tac Toe</title>
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #1a1a2e;
+      color: white;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+    .game-title {
+      font-size: 24px;
+      margin: 10px 0;
+      color: #e94560;
+      text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      background: #e94560;
+      padding: 5px;
+      border-radius: 10px;
+      margin: 15px 0;
+    }
+    .cell {
+      width: 80px;
+      height: 80px;
+      background: #16213e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .cell.x { color: #e94560; }
+    .cell.o { color: #00ff88; }
+    .cell:active {
+      background: #0f3460;
+      transform: scale(0.97);
+    }
+    .status {
+      font-size: 20px;
+      margin: 10px 0;
+      height: 30px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    button {
+      background: #e94560;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button.active {
+      background: #533483;
+    }
+    button:active {
+      background: #b83b5e;
+      transform: scale(0.97);
+    }
+    .sound-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 24px;
+      background: none;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <button class="sound-toggle" id="soundToggle">🔊</button>
+  <h1 class="game-title">Ninja Tic Tac Toe</h1>
+  <div class="status" id="status">Your turn (X)</div>
+  <div class="board" id="board"></div>
+  <div class="controls">
+    <button id="easyBtn">Easy</button>
+    <button id="mediumBtn">Medium</button>
+    <button id="hardBtn" class="active">Hard</button>
+  </div>
+  <button id="newGame">New Game</button>
+
+  <script>
+    let board = Array(9).fill('');
+    let isPlayerTurn = true;
+    let gameOver = false;
+    let difficulty = 'hard';
+    let soundEnabled = true;
+
+    function beep(freq = 440, duration = 100, volume = 0.1) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        gain.gain.value = volume;
+        osc.start();
+        setTimeout(() => {
+          osc.stop();
+          ctx.close();
+        }, duration);
+      } catch (e) {}
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      switch(type) {
+        case 'move': beep(440, 50); break;
+        case 'win': beep(880, 150); break;
+        case 'draw': beep(330, 100); break;
+        case 'click': beep(660, 50); break;
+      }
+    }
+
+    function createBoard() {
+      const boardDiv = document.getElementById('board');
+      boardDiv.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.index = i;
+        cell.addEventListener('click', () => makeMove(i));
+        boardDiv.appendChild(cell);
+      }
+    }
+
+    function updateBoard() {
+      document.querySelectorAll('.cell').forEach((cell, i) => {
+        cell.textContent = board[i];
+        cell.className = 'cell' + (board[i] ? ' ' + board[i].toLowerCase() : '');
+      });
+    }
+
+    function checkWinner() {
+      const lines = [
+        [0,1,2], [3,4,5], [6,7,8],
+        [0,3,6], [1,4,7], [2,5,8],
+        [0,4,8], [2,4,6]
+      ];
+      for (let line of lines) {
+        if (board[line[0]] && board[line[0]] === board[line[1]] && board[line[0]] === board[line[2]]) {
+          return board[line[0]];
+        }
+      }
+      return board.includes('') ? null : 'Draw';
+    }
+
+    function aiMove() {
+      if (difficulty === 'easy') {
+        const empty = board.map((v,i) => v === '' ? i : null).filter(v => v !== null);
+        return empty[Math.floor(Math.random() * empty.length)];
+      }
+
+      let bestScore = -Infinity;
+      let move = 0;
+      for (let i = 0; i < 9; i++) {
+        if (board[i] === '') {
+          board[i] = 'O';
+          const score = minimax(board, 0, false);
+          board[i] = '';
+          if (difficulty === 'medium' && Math.random() < 0.3) continue;
+          if (score > bestScore) {
+            bestScore = score;
+            move = i;
+          }
+        }
+      }
+      return move;
+    }
+
+    function minimax(board, depth, isMax) {
+      const winner = checkWinner();
+      if (winner === 'O') return 10 - depth;
+      if (winner === 'X') return depth - 10;
+      if (winner === 'Draw') return 0;
+
+      if (isMax) {
+        let best = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === '') {
+            board[i] = 'O';
+            best = Math.max(best, minimax(board, depth + 1, false));
+            board[i] = '';
+          }
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === '') {
+            board[i] = 'X';
+            best = Math.min(best, minimax(board, depth + 1, true));
+            board[i] = '';
+          }
+        }
+        return best;
+      }
+    }
+
+    function makeMove(index) {
+      if (!isPlayerTurn || board[index] || gameOver) return;
+      playSound('move');
+      board[index] = 'X';
+      updateBoard();
+      let winner = checkWinner();
+      if (winner) {
+        endGame(winner);
+        return;
+      }
+      isPlayerTurn = false;
+      document.getElementById('status').textContent = "AI's turn (O)";
+      setTimeout(() => {
+        const aiIndex = aiMove();
+        playSound('move');
+        board[aiIndex] = 'O';
+        updateBoard();
+        winner = checkWinner();
+        if (winner) {
+          endGame(winner);
+        } else {
+          isPlayerTurn = true;
+          document.getElementById('status').textContent = 'Your turn (X)';
+        }
+      }, 300);
+    }
+
+    function endGame(winner) {
+      gameOver = true;
+      if (winner === 'Draw') {
+        playSound('draw');
+        document.getElementById('status').textContent = "It's a Draw!";
+      } else {
+        playSound('win');
+        document.getElementById('status').textContent = winner === 'X' ? 'You Win!' : 'AI Wins!';
+      }
+    }
+
+    function newGame() {
+      playSound('click');
+      board = Array(9).fill('');
+      isPlayerTurn = true;
+      gameOver = false;
+      document.getElementById('status').textContent = 'Your turn (X)';
+      updateBoard();
+    }
+
+    document.getElementById('newGame').addEventListener('click', newGame);
+    document.getElementById('soundToggle').addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔈';
+    });
+
+    ['easy', 'medium', 'hard'].forEach(level => {
+      document.getElementById(level + 'Btn').addEventListener('click', () => {
+        playSound('click');
+        difficulty = level;
+        document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(level + 'Btn').classList.add('active');
+        newGame();
+      });
+    });
+
+    createBoard();
+    updateBoard();
+  </script>
+</body>
+</html>
